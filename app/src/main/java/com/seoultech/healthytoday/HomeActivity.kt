@@ -18,5 +18,9 @@ class HomeActivity : AppCompatActivity() {
             startActivity(Intent(this,SurveyActivity::class.java))
             finish()
         }
+        binding.recommend.setOnClickListener {
+            startActivity(Intent(this,RecommendActivity::class.java))
+            finish()
+        }
     }
 }

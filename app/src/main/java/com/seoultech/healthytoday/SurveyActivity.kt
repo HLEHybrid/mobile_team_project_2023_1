@@ -11,7 +11,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
-import com.seoultech.healthytoday.databinding.ActivityMainBinding
 import com.seoultech.healthytoday.databinding.ActivitySurveyBinding
 
 class SurveyActivity : AppCompatActivity() {
@@ -21,6 +20,7 @@ class SurveyActivity : AppCompatActivity() {
 
     data class ResultDTO(
         var uid: String? = null,
+        var sex: String? = null,
         var exception: String? = null,
         var age: String? = null,
         var morning: String? = null,
@@ -37,6 +37,15 @@ class SurveyActivity : AppCompatActivity() {
 
         auth = Firebase.auth
         firestore = FirebaseFirestore.getInstance()
+
+        var sex = ""
+        binding.radioGroup0.setOnCheckedChangeListener { _, checkedId ->
+            sex = when (checkedId) {
+                R.id.q0Btn1 -> "남성"
+                R.id.q0Btn2 -> "여성"
+                else -> ""
+            }
+        }
 
         var exception = ""
         binding.radioGroup.setOnCheckedChangeListener { _, checkedId ->
@@ -91,6 +100,7 @@ class SurveyActivity : AppCompatActivity() {
         binding.save.setOnClickListener {
             val resultDTO = ResultDTO().apply {
                 uid = auth?.currentUser?.uid
+                this.sex = sex
                 this.exception = exception
                 age = binding.spinner.selectedItem?.toString()
                 this.morning = morning
@@ -100,7 +110,7 @@ class SurveyActivity : AppCompatActivity() {
                 this.dinner_where = dinner_where
             }
 
-            firestore?.collection(auth?.currentUser?.uid ?: "")?.document()?.set(resultDTO)
+            firestore?.collection("survey")?.document(auth?.currentUser?.uid ?: "")?.set(resultDTO)
                 ?.addOnSuccessListener {
                     Toast.makeText(this, "저장완료", Toast.LENGTH_SHORT).show()
                 }
