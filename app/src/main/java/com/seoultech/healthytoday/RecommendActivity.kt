@@ -282,13 +282,13 @@ class RecommendActivity : AppCompatActivity() {
                             Log.d("IISE",max.toString())
                         }
                     } catch (e: Exception) {
-                        Toast.makeText(this@RecommendActivity, "설문조사를 다시 진행해주세요.", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this@RecommendActivity, HomeActivity::class.java))
+                        Toast.makeText(this, "설문조사를 다시 진행해주세요.", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this, HomeActivity::class.java))
                         finish()
                     }
                 } else {
-                    Toast.makeText(this@RecommendActivity, "저장된 설문조사가 없습니다.", Toast.LENGTH_SHORT).show()
-                    startActivity(Intent(this@RecommendActivity, HomeActivity::class.java))
+                    Toast.makeText(this, "저장된 설문조사가 없습니다.", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, HomeActivity::class.java))
                     finish()
                 }
             }
