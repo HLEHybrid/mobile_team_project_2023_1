@@ -22,5 +22,13 @@ class HomeActivity : AppCompatActivity() {
             startActivity(Intent(this,RecommendActivity::class.java))
             finish()
         }
+        binding.outsideactivity.setOnClickListener {
+            startActivity(Intent(this,OutsideActivity::class.java))
+            finish()
+        }
+        binding.youtube.setOnClickListener {
+            startActivity(Intent(this,HomeMakeActivity::class.java))
+            finish()
+        }
     }
 }

@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity()
-data class my_table(
+data class Food(
     @PrimaryKey val index: Int,
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "cal") val cal: String,

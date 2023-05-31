@@ -1,14 +1,13 @@
 package com.seoultech.healthytoday
 
 import android.content.Context
-import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [my_table::class],
-    version = 2)
+    entities = [Food::class],
+    version = 1)
 
 abstract class AppDatabase : RoomDatabase() {
     abstract fun foodDao(): FoodDao
@@ -24,7 +23,7 @@ abstract class AppDatabase : RoomDatabase() {
                         context.applicationContext,
                         AppDatabase::class.java, "database.db"
                     )
-                        .createFromAsset("database/database.db")
+                        .createFromAsset("database/food.db")
                         .fallbackToDestructiveMigration()
                         .build()
                 }

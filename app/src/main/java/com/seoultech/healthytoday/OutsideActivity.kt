@@ -1,20 +1,33 @@
 package com.seoultech.healthytoday
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Room
+import androidx.room.RoomDatabase
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationListener
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
@@ -31,44 +44,42 @@ class OutsideActivity : AppCompatActivity() {
     var storedLatitude: Double = 0.0
     var storedLongitude: Double = 0.0
     var food_shop: List<JSONObject> = emptyList()
+    private lateinit var locationManager: LocationManager
+    private lateinit var locationListener: LocationListener
 
+    private val apiKey = "YOUR_API_KEY" // Google Places API 키를 여기에 넣어주세요
+    private val radius = 1000
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_outside)
         val button = findViewById<Button>(R.id.button)
+        val button2 = findViewById<Button>(R.id.button2)
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        getCurrentLocation { latitude, longitude ->
-            // Do something with latitude and longitude
-            searchRestaurants(latitude, longitude)
+        val resdb = ResDatabase.getInstance(applicationContext)
 
-        }
+
+        val apiKey = "AIzaSyAniUdgYwZTqrj3MGYPNDE6VhWkgW-hlrE" //  API 키
+        val latitude = 37.12345 // 현재 위치의 위도
+        val longitude = 127.54321 // 현재 위치의 경도
+        val radius = 1000 // 1km 반경 내의 장소를 검색하기 위한 반경 값 (단위: 미터)
+
+
+
 
         /*구글 맵 열고 화면 가져오기
         val intent = Intent(this, MapsActivityCurrentPlace::class.java)
         startActivity(intent)
         */
         button.setOnClickListener {
-            Log.d("test","${food_shop[0]}")
-            var place_to_go :String ="sd"
-            place_to_go=food_shop[0].getString("name")
-            showPlaceOnGoogleMap(place_to_go)
-            // showCurrentPlace() 메서드 호출 예시
-            // mapsActivityCurrentPlace.showCurrentPlace()
+            val editText = findViewById<EditText>(R.id.edit)
+            val searchText: String = editText.text.toString()
+            showPlaceOnGoogleMap(searchText)
 
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                    LOCATION_PERMISSION_REQUEST_CODE
-                )
-            } else {
-            }
         }
+        button2.setOnClickListener {
+            startActivity(Intent(this,TargetActivity::class.java))
+        }
+
     }
 
 
@@ -117,8 +128,10 @@ class OutsideActivity : AppCompatActivity() {
             }
 
             override fun onResponse(response: Response?) {
+                val button = findViewById<Button>(R.id.button)
+
                 val responseBody = response?.body()?.string()
-                if (response != null) {
+                if (response != null && responseBody != null) {
                     if (response.isSuccessful && !responseBody.isNullOrEmpty()) {
                         val jsonObject = JSONObject(responseBody)
                         val resultsArray = jsonObject.getJSONArray("results")
@@ -129,15 +142,13 @@ class OutsideActivity : AppCompatActivity() {
                             list.add(jsonItem)
                         }
                         food_shop = list
-                        //test code
-                        for (i in 0 until resultsArray.length()) {
-                            val result = resultsArray.getJSONObject(i)
-                            val name = result.getString("name")
-                            val vicinity = result.getString("vicinity")
 
-                            // Process restaurant information
-                            Log.d("json call test","Name: $name, Address: $vicinity")
+                        // 비동기 작업이 완료된 시점에서 버튼을 활성화
+                        runOnUiThread {
+                            button.isEnabled = true
                         }
+
+                        // ...
                     } else {
                         // Handle response failure
                     }
@@ -146,7 +157,7 @@ class OutsideActivity : AppCompatActivity() {
 
         })
     }
-    public fun getCurrentLocation(callback: (latitude: Double, longitude: Double) -> Unit) {
+    fun getCurrentLocation(callback: (latitude: Double, longitude: Double) -> Unit) {
         val locationRequest = LocationRequest.create().apply {
             interval = 99999999999999999 // Update interval in milliseconds
             fastestInterval = 99999999999999999 // Fastest update interval in milliseconds
@@ -184,13 +195,7 @@ class OutsideActivity : AppCompatActivity() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+
             return
         }
         fusedLocationClient.requestLocationUpdates(
@@ -215,8 +220,52 @@ class OutsideActivity : AppCompatActivity() {
                 ).show()
             }
         }
+
+
     }
 
+
+
+
+    @Database(entities = [Restaurant::class], version = 1)
+    abstract class ResDatabase : RoomDatabase() {
+        abstract fun restaurantDao(): RestaurantDao
+
+        companion object {
+            private var instance: ResDatabase? = null
+
+            fun getInstance(context: Context): ResDatabase {
+                if (instance == null) {
+                    synchronized(ResDatabase::class) {
+                        instance = Room.databaseBuilder(
+                            context.applicationContext,
+                            ResDatabase::class.java,
+                            "restaurant-db"
+                        ).build()
+                    }
+                }
+                return instance!!
+            }
+        }
+    }
+
+    @Entity(tableName = "restaurants")
+    data class Restaurant(
+        @PrimaryKey val name: String,
+        val address: String
+    )
+
+    @Dao
+    interface RestaurantDao {
+        @Insert(onConflict = OnConflictStrategy.REPLACE)
+        fun insert(restaurant: Restaurant)
+
+        @Query("SELECT * FROM restaurants")
+        fun getAllRestaurants(): List<Restaurant>
+
+        @Query("DELETE FROM restaurants")
+        fun deleteAllRestaurants()
+    }
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 100
     }

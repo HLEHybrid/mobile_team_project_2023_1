@@ -411,14 +411,4 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 }
 
-// ...
-
-// Import the required classes
-
-
-// ...
-
-// Initialize the Places API client
-
-// ...
 
